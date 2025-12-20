@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        input {
+            margin: 10px 0;
+            padding: 8px;
+            font-size: 16px;
+            width: 200px;
+            display: block;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Product Calculator</h2>
+        <input type="number" id="num1" placeholder="Enter first number">
+        <input type="number" id="num2" placeholder="Enter second number">
+        <button onclick="calculateProduct()">Calculate Product</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function calculateProduct() {
+            const val1 = document.getElementById('num1').value;
+            const val2 = document.getElementById('num2').value;
+            const resultDiv = document.getElementById('result');
+
+            if (val1 === '' || val2 === '') {
+                resultDiv.textContent = "Please enter both numbers.";
+                resultDiv.style.color = "red";
+                return;
+            }
+
+            const num1 = parseFloat(val1);
+            const num2 = parseFloat(val2);
+
+            if (isNaN(num1) || isNaN(num2)) {
+                resultDiv.textContent = "Please enter valid numbers.";
+                resultDiv.style.color = "red";
+            } else {
+                const product = num1 * num2;
+                resultDiv.textContent = `Product: ${product}`;
+                resultDiv.style.color = "black";
+            }
+        }
+    </script>
+</body>
+</html>
