@@ -60,18 +60,22 @@
 
         #board {
             background-color: #0056b3;
-            padding: 15px;
+            padding: 10px;
             border-radius: 10px;
             display: grid;
-            grid-template-columns: repeat(7, 60px);
-            grid-template-rows: repeat(6, 60px);
-            gap: 10px;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 7 / 6;
+            box-sizing: border-box;
         }
 
         .cell {
-            width: 60px;
-            height: 60px;
+            width: 100%;
+            height: 100%;
             background-color: white;
             border-radius: 50%;
             cursor: pointer;
@@ -94,7 +98,7 @@
         
         /* Animation for dropping pieces */
         @keyframes drop {
-            0% { transform: translateY(-300px); opacity: 0; }
+            0% { transform: translateY(-500%); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
         }
         
@@ -112,12 +116,17 @@
             gap: 15px;
             margin-bottom: 20px;
             align-items: center;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
         }
         
         .control-group {
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .game-info {
@@ -131,13 +140,15 @@
 
         .score-board {
             display: flex;
-            gap: 20px;
-            font-size: 18px;
+            gap: 15px;
+            font-size: 16px;
             font-weight: bold;
             background: white;
-            padding: 10px 20px;
+            padding: 10px 15px;
             border-radius: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .score-board span span {
