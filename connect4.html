@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vier Gewinnt vs KI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        select, button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #status {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            height: 30px;
+            color: #333;
+        }
+
+        #board {
+            background-color: #0056b3;
+            padding: 15px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(7, 60px);
+            grid-template-rows: repeat(6, 60px);
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cell.player {
+            background-color: #ff4136; /* Red */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .cell.computer {
+            background-color: #ffdc00; /* Yellow */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .cell:not(.player):not(.computer):hover {
+            background-color: #e6e6e6;
+        }
+        
+        /* Animation for dropping pieces */
+        @keyframes drop {
+            0% { transform: translateY(-300px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .cell.player, .cell.computer {
+            animation: drop 0.3s ease-in;
+        }
+
+        .setup-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .game-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .score-board {
+            display: flex;
+            gap: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .score-board span span {
+            color: #007bff;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Vier Gewinnt Turnier</h1>
+
+    <div class="setup-controls" id="setupControls">
+        <div class="control-group">
+            <label for="winsNeeded">Siege zum Gewinn:</label>
+            <input type="number" id="winsNeeded" value="3" min="1" max="10" style="width: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div class="control-group">
+            <label for="difficulty">Schwierigkeit:</label>
+            <select id="difficulty">
+                <option value="easy">Leicht</option>
+                <option value="medium" selected>Mittel</option>
+                <option value="hard">Schwer</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="starter">Wer beginnt:</label>
+            <select id="starter">
+                <option value="player">Spieler</option>
+                <option value="computer">Computer</option>
+            </select>
+        </div>
+        <button id="startTournamentBtn">Turnier Starten</button>
+    </div>
+
+    <div class="game-info" id="gameInfo" style="display:none;">
+        <div class="score-board">
+            <span>Spieler: <span id="playerScore">0</span></span>
+            <span>Computer: <span id="computerScore">0</span></span>
+            <span>Ziel: <span id="targetScore">3</span></span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="nextGameBtn" style="display:none;">Nächstes Spiel</button>
+            <button id="resetTournamentBtn">Neues Turnier</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="board">
+        <!-- Grid cells generated by JS -->
+    </div>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 7;
+        const PLAYER = 1;
+        const COMPUTER = 2;
+        const EMPTY = 0;
+
+        let board = [];
+        let currentPlayer = PLAYER;
+        let gameActive = false;
+        let difficulty = 'medium';
+        
+        // Tournament State
+        let playerWins = 0;
+        let computerWins = 0;
+        let winsNeeded = 3;
+        let roundStarter = PLAYER;
+
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        
+        const setupControls = document.getElementById('setupControls');
+        const gameInfo = document.getElementById('gameInfo');
+        
+        const winsNeededInput = document.getElementById('winsNeeded');
+        const difficultySelect = document.getElementById('difficulty');
+        const starterSelect = document.getElementById('starter');
+        const startTournamentBtn = document.getElementById('startTournamentBtn');
+        
+        const playerScoreEl = document.getElementById('playerScore');
+        const computerScoreEl = document.getElementById('computerScore');
+        const targetScoreEl = document.getElementById('targetScore');
+        
+        const nextGameBtn = document.getElementById('nextGameBtn');
+        const resetTournamentBtn = document.getElementById('resetTournamentBtn');
+
+        function initTournament() {
+            playerWins = 0;
+            computerWins = 0;
+            winsNeeded = parseInt(winsNeededInput.value);
+            difficulty = difficultySelect.value;
+            
+            // Determine initial starter
+            roundStarter = starterSelect.value === 'player' ? PLAYER : COMPUTER;
+            
+            // UI Updates
+            setupControls.style.display = 'none';
+            gameInfo.style.display = 'flex';
+            playerScoreEl.textContent = '0';
+            computerScoreEl.textContent = '0';
+            targetScoreEl.textContent = winsNeeded;
+            
+            startRound();
+        }
+
+        function startRound() {
+            board = Array(ROWS).fill().map(() => Array(COLS).fill(EMPTY));
+            currentPlayer = roundStarter;
+            gameActive = true;
+            
+            nextGameBtn.style.display = 'none';
+            createBoard();
+            updateStatus();
+            
+            if (currentPlayer === COMPUTER) {
+                setTimeout(makeComputerMove, 500);
+            }
+        }
+
+        function updateStatus() {
+            if (currentPlayer === PLAYER) {
+                statusElement.textContent = "Spieler ist am Zug (Rot)";
+                statusElement.style.color = "#ff4136";
+            } else {
+                statusElement.textContent = "Computer denkt nach...";
+                statusElement.style.color = "#ffdc00";
+            }
+        }
+
+        // Create the board grid
+        function createBoard() {
+            boardElement.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.addEventListener('click', () => handlePlayerMove(c));
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function updateCell(row, col, player) {
+            const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
+            if (cell) {
+                if (player === PLAYER) {
+                    cell.classList.add('player');
+                } else if (player === COMPUTER) {
+                    cell.classList.add('computer');
+                }
+            }
+        }
+
+        // Handle Player Click
+        function handlePlayerMove(col) {
+            if (!gameActive || currentPlayer !== PLAYER) return;
+
+            const row = makeMove(board, col, PLAYER);
+            if (row !== -1) {
+                updateCell(row, col, PLAYER);
+                if (checkWin(board, PLAYER)) {
+                    endGame("Spieler gewinnt!", PLAYER);
+                } else if (checkDraw(board)) {
+                    endGame("Unentschieden!", null);
+                } else {
+                    currentPlayer = COMPUTER;
+                    statusElement.textContent = "Computer denkt nach...";
+                    statusElement.style.color = "#ffdc00";
+                    // Small delay for realism
+                    setTimeout(makeComputerMove, 500);
+                }
+            }
+        }
+
+        // Place piece in the lowest empty row of the column
+        function makeMove(boardState, col, player) {
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (boardState[r][col] === EMPTY) {
+                    boardState[r][col] = player;
+                    return r;
+                }
+            }
+            return -1;
+        }
+
+        // Undo move (for AI calculations)
+        function undoMove(boardState, col) {
+            for (let r = 0; r < ROWS; r++) {
+                if (boardState[r][col] !== EMPTY) {
+                    boardState[r][col] = EMPTY;
+                    return;
+                }
+            }
+        }
+
+        // Get valid columns
+        function getValidMoves(boardState) {
+            const moves = [];
+            for (let c = 0; c < COLS; c++) {
+                if (boardState[0][c] === EMPTY) {
+                    moves.push(c);
+                }
+            }
+            return moves;
+        }
+
+        // Check for Win
+        function checkWin(boardState, player) {
+            // Horizontal
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 3; c++) {
+                    if (boardState[r][c] === player && boardState[r][c+1] === player && 
+                        boardState[r][c+2] === player && boardState[r][c+3] === player) return true;
+                }
+            }
+            // Vertical
+            for (let r = 0; r < ROWS - 3; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (boardState[r][c] === player && boardState[r+1][c] === player && 
+                        boardState[r+2][c] === player && boardState[r+3][c] === player) return true;
+                }
+            }
+            // Diagonal /
+            for (let r = 3; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 3; c++) {
+                    if (boardState[r][c] === player && boardState[r-1][c+1] === player && 
+                        boardState[r-2][c+2] === player && boardState[r-3][c+3] === player) return true;
+                }
+            }
+            // Diagonal \
+            for (let r = 0; r < ROWS - 3; r++) {
+                for (let c = 0; c < COLS - 3; c++) {
+                    if (boardState[r][c] === player && boardState[r+1][c+1] === player && 
+                        boardState[r+2][c+2] === player && boardState[r+3][c+3] === player) return true;
+                }
+            }
+            return false;
+        }
+
+        function checkDraw(boardState) {
+            return boardState[0].every(cell => cell !== EMPTY);
+        }
+
+        function endGame(message, winner) {
+            gameActive = false;
+            statusElement.textContent = message;
+            statusElement.style.color = "#333";
+            
+            if (winner === PLAYER) playerWins++;
+            if (winner === COMPUTER) computerWins++;
+            
+            playerScoreEl.textContent = playerWins;
+            computerScoreEl.textContent = computerWins;
+            
+            if (playerWins >= winsNeeded) {
+                statusElement.textContent = "GLÜCKWUNSCH! Du hast das Turnier gewonnen!";
+                statusElement.style.color = "#28a745";
+            } else if (computerWins >= winsNeeded) {
+                statusElement.textContent = "SCHADE! Der Computer hat das Turnier gewonnen.";
+                statusElement.style.color = "#dc3545";
+            } else {
+                // Prepare next round
+                nextGameBtn.style.display = 'inline-block';
+                // Alternate starter
+                roundStarter = roundStarter === PLAYER ? COMPUTER : PLAYER;
+            }
+        }
+
+        // --- AI Logic ---
+
+        function makeComputerMove() {
+            if (!gameActive) return;
+
+            let col;
+            const validMoves = getValidMoves(board);
+
+            if (difficulty === 'easy') {
+                col = validMoves[Math.floor(Math.random() * validMoves.length)];
+            } else if (difficulty === 'medium') {
+                col = getMediumMove(validMoves);
+            } else {
+                col = getHardMove(validMoves);
+            }
+
+            const row = makeMove(board, col, COMPUTER);
+            if (row !== -1) {
+                updateCell(row, col, COMPUTER);
+
+                if (checkWin(board, COMPUTER)) {
+                    endGame("Computer gewinnt!", COMPUTER);
+                } else if (checkDraw(board)) {
+                    endGame("Unentschieden!", null);
+                } else {
+                    currentPlayer = PLAYER;
+                    statusElement.textContent = "Spieler ist am Zug (Rot)";
+                    statusElement.style.color = "#ff4136";
+                }
+            }
+        }
+
+        function getMediumMove(validMoves) {
+            // 1. Check if AI can win immediately
+            for (let col of validMoves) {
+                makeMove(board, col, COMPUTER);
+                if (checkWin(board, COMPUTER)) {
+                    undoMove(board, col);
+                    return col;
+                }
+                undoMove(board, col);
+            }
+
+            // 2. Check if Player can win immediately and block
+            for (let col of validMoves) {
+                makeMove(board, col, PLAYER);
+                if (checkWin(board, PLAYER)) {
+                    undoMove(board, col);
+                    return col;
+                }
+                undoMove(board, col);
+            }
+
+            // 3. Otherwise random
+            return validMoves[Math.floor(Math.random() * validMoves.length)];
+        }
+
+        function getHardMove(validMoves) {
+            // Minimax with Alpha-Beta Pruning
+            // Depth 5 is usually sufficient for a quick browser response
+            const depth = 5; 
+            const [score, col] = minimax(board, depth, -Infinity, Infinity, true);
+            return col;
+        }
+
+        // Heuristic Evaluation Function
+        function evaluateBoard(boardState) {
+            let score = 0;
+            
+            // Score center column higher (strategic advantage)
+            const centerArray = [];
+            for(let r=0; r<ROWS; r++) centerArray.push(boardState[r][3]);
+            const centerCount = centerArray.filter(x => x === COMPUTER).length;
+            score += centerCount * 3;
+
+            // Horizontal
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 3; c++) {
+                    const window = [boardState[r][c], boardState[r][c+1], boardState[r][c+2], boardState[r][c+3]];
+                    score += evaluateWindow(window);
+                }
+            }
+            // Vertical
+            for (let r = 0; r < ROWS - 3; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const window = [boardState[r][c], boardState[r+1][c], boardState[r+2][c], boardState[r+3][c]];
+                    score += evaluateWindow(window);
+                }
+            }
+            // Diagonal /
+            for (let r = 3; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 3; c++) {
+                    const window = [boardState[r][c], boardState[r-1][c+1], boardState[r-2][c+2], boardState[r-3][c+3]];
+                    score += evaluateWindow(window);
+                }
+            }
+            // Diagonal \
+            for (let r = 0; r < ROWS - 3; r++) {
+                for (let c = 0; c < COLS - 3; c++) {
+                    const window = [boardState[r][c], boardState[r+1][c+1], boardState[r+2][c+2], boardState[r+3][c+3]];
+                    score += evaluateWindow(window);
+                }
+            }
+            return score;
+        }
+
+        function evaluateWindow(window) {
+            let score = 0;
+            const computerCount = window.filter(x => x === COMPUTER).length;
+            const playerCount = window.filter(x => x === PLAYER).length;
+            const emptyCount = window.filter(x => x === EMPTY).length;
+
+            if (computerCount === 4) score += 100;
+            else if (computerCount === 3 && emptyCount === 1) score += 5;
+            else if (computerCount === 2 && emptyCount === 2) score += 2;
+
+            if (playerCount === 3 && emptyCount === 1) score -= 4;
+
+            return score;
+        }
+
+        function minimax(boardState, depth, alpha, beta, maximizingPlayer) {
+            const validMoves = getValidMoves(boardState);
+            const isWinComputer = checkWin(boardState, COMPUTER);
+            const isWinPlayer = checkWin(boardState, PLAYER);
+            const isDraw = validMoves.length === 0;
+
+            if (depth === 0 || isWinComputer || isWinPlayer || isDraw) {
+                if (isWinComputer) return [1000000, null];
+                if (isWinPlayer) return [-1000000, null];
+                if (isDraw) return [0, null];
+                return [evaluateBoard(boardState), null];
+            }
+
+            if (maximizingPlayer) {
+                let maxEval = -Infinity;
+                let bestCol = validMoves[Math.floor(Math.random() * validMoves.length)];
+                
+                // Sort moves to improve pruning (center moves first often better)
+                validMoves.sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
+
+                for (let col of validMoves) {
+                    makeMove(boardState, col, COMPUTER);
+                    const [eval] = minimax(boardState, depth - 1, alpha, beta, false);
+                    undoMove(boardState, col);
+                    
+                    if (eval > maxEval) {
+                        maxEval = eval;
+                        bestCol = col;
+                    }
+                    alpha = Math.max(alpha, eval);
+                    if (beta <= alpha) break;
+                }
+                return [maxEval, bestCol];
+            } else {
+                let minEval = Infinity;
+                let bestCol = validMoves[Math.floor(Math.random() * validMoves.length)];
+                
+                validMoves.sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
+
+                for (let col of validMoves) {
+                    makeMove(boardState, col, PLAYER);
+                    const [eval] = minimax(boardState, depth - 1, alpha, beta, true);
+                    undoMove(boardState, col);
+
+                    if (eval < minEval) {
+                        minEval = eval;
+                        bestCol = col;
+                    }
+                    beta = Math.min(beta, eval);
+                    if (beta <= alpha) break;
+                }
+                return [minEval, bestCol];
+            }
+        }
+
+        startTournamentBtn.addEventListener('click', initTournament);
+        nextGameBtn.addEventListener('click', startRound);
+        resetTournamentBtn.addEventListener('click', () => {
+            gameActive = false;
+            setupControls.style.display = 'flex';
+            gameInfo.style.display = 'none';
+            boardElement.innerHTML = '';
+            statusElement.textContent = '';
+        });
+
+    </script>
+</body>
+</html>
