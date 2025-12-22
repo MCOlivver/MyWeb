@@ -486,11 +486,11 @@
             const validMoves = getValidMoves(board);
 
             if (difficulty === 'easy') {
-                col = validMoves[Math.floor(Math.random() * validMoves.length)];
+                col = getEasyMove(validMoves);
             } else if (difficulty === 'medium') {
-                col = getMediumMove(validMoves);
+                col = getMiniMaxMove(validMoves, 5);
             } else {
-                col = getHardMove(validMoves);
+                col = getMiniMaxMove(validMoves, 8);
             }
 
             const row = makeMove(board, col, COMPUTER);
@@ -509,7 +509,7 @@
             }
         }
 
-        function getMediumMove(validMoves) {
+        function getEasyMove(validMoves) {
             // 1. Check if AI can win immediately
             for (let col of validMoves) {
                 makeMove(board, col, COMPUTER);
@@ -534,10 +534,8 @@
             return validMoves[Math.floor(Math.random() * validMoves.length)];
         }
 
-        function getHardMove(validMoves) {
+        function getMiniMaxMove(validMoves, depth) {
             // Minimax with Alpha-Beta Pruning
-            // Depth 5 is usually sufficient for a quick browser response
-            const depth = 5; 
             const [score, col] = minimax(board, depth, -Infinity, Infinity, true);
             return col;
         }
