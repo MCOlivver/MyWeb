@@ -607,8 +607,8 @@
             const isDraw = validMoves.length === 0;
 
             if (depth === 0 || isWinComputer || isWinPlayer || isDraw) {
-                if (isWinComputer) return [1000000, null];
-                if (isWinPlayer) return [-1000000, null];
+                if (isWinComputer) return [1000000 + depth, null];
+                if (isWinPlayer) return [-1000000 - depth, null];
                 if (isDraw) return [0, null];
                 return [evaluateBoard(boardState), null];
             }
